@@ -3182,10 +3182,10 @@
                 <!-- Aktif performans ayarları -->
                 <div class="p-3 bg-black/60 rounded border border-amber-900/40 text-[10px] space-y-1 text-stone-400">
                     <div class="text-amber-300 font-bold font-rpg text-[11px] mb-1">Aktif performans ayarları:</div>
-                    <div>Doğal cihaz piksel oranı kullanılır; render çözünürlüğü 4K piksel bütçesini aşmaz.</div>
+                    <div>Render ölçeği varsayılan %70; düşük FPS'de %55'e kadar iner ve yükseltilerek ekrana sığdırılır.</div>
                     <div>Gölge haritası iki render karesinde bir güncellenir; MSAA ve seçili gölge kalitesi korunur.</div>
                     <div>Statik köy geometrileri birleştirilir; tekrarlanan çimler instancing ile çizilir.</div>
-                    <div>FPS uzun süre düşük kalırsa render ölçeği kademeli olarak en fazla %10 azaltılır.</div>
+                    <div>FPS toparlanınca render ölçeği en fazla %70'e çıkar; tam çözünürlüğe dönüp yeniden kasmaz.</div>
                 </div>
 
                 <!-- FPS Göstergesi Toggle -->
@@ -3368,11 +3368,13 @@
         let worldAtmosphere = null;
         let reducedGraphics = false;
         const ULTRA_HD_PIXEL_BUDGET = 3840 * 2160;
+        const BASE_RENDER_SCALE = 0.70;
+        const ADAPTIVE_RENDER_SCALE_MIN = 0.55;
 
-        // Natural device resolution with a 4K pixel-budget ceiling.
+        // Reduced render scale keeps GPU load predictable while preserving display size.
         const graphicsConfig = {
             mode: 'native',
-            scale: 1.0,
+            scale: BASE_RENDER_SCALE,
             shadowQuality: 'soft',  // 'soft' (Hızlı Donanım PCF), 'basic', 'off'
             grassDensity: 'medium', // 'high', 'medium', 'low'
             showHud: true,
@@ -3388,7 +3390,6 @@
             lastHudUpdate: 0
         };
         const performanceState = { lowFrameWindows: 0, highFrameWindows: 0, shadowFrame: 0 };
-        const ADAPTIVE_RENDER_SCALE_MIN = 0.90;
         let plusNineParticles;
         let slashTrailMesh, slashTrailGeometry, slashTrailCoreMesh, slashTrailCoreGeometry, slashTrailHistory = [];
 
