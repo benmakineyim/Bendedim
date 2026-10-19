@@ -20998,11 +20998,12 @@
                 const angleDiff = Math.abs(Math.atan2(Math.sin(angleToMob - warriorYaw), Math.cos(angleToMob - warriorYaw)));
                 const isInFrontCone = (angleDiff <= maxAngle && distToWarrior <= hitRadius);
                 const isInImpact = (impactDistance <= 4.2);
+                const attackReach = isTargetMob ? (data.isBoss ? 11 : 8) : hitRadius + 0.6;
 
                 if (!isTargetMob && !isPointBlank && !isInFrontCone && !isInImpact) {
                     if (distToWarrior > (isTargetMob ? 6.2 : hitRadius)) return;
                 }
-                if (distToWarrior > (isTargetMob ? 6.5 : (hitRadius + 0.6))) return;
+                if (distToWarrior > attackReach) return;
 
                 data.lastHitAt = worldSimulationTime;
                 data.mode = 'aggro';
