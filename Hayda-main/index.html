@@ -3114,109 +3114,78 @@
                 </button>
             </div>
 
-            <div class="p-5 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
-                <!-- Canlı Performans Bilgisi -->
-                <div class="flex items-center justify-between p-3 rounded border border-amber-900/50 bg-black/50">
+            <div class="p-3 space-y-3 max-h-[75vh] overflow-y-auto text-[10px] sm:text-xs">
+                <div class="flex items-center justify-between p-2 rounded border border-amber-900/50 bg-black/50">
                     <div>
-                        <span class="hud-kicker text-amber-300">ANLIK PERFORMANS</span>
-                        <div class="flex items-center gap-3 mt-1">
+                        <div class="text-[9px] text-amber-300 font-bold">ANLIK PERFORMANS</div>
+                        <div class="mt-1 flex items-center gap-2">
                             <span class="text-sm font-bold text-emerald-400 font-mono" id="modal-fps-text">60 FPS</span>
                             <span class="text-stone-500">|</span>
                             <span class="text-stone-300 font-mono" id="modal-res-text">%100 (1920x1080)</span>
                         </div>
                     </div>
-                    <span class="text-[9px] px-2.5 py-1 rounded bg-amber-950/80 border border-amber-600/40 text-amber-200">
-                        ⚡ FPS Odaklı Uyarlama Aktif
-                    </span>
+                    <span class="text-[8px] px-2 py-1 rounded bg-amber-950/80 border border-amber-600/40 text-amber-200">FPS uyarlama</span>
                 </div>
 
-                <!-- Çözünürlük Algoritması -->
                 <div>
-                    <label class="block font-rpg text-amber-200 mb-1.5">⚡ Ekran Çözünürlüğü & Performans</label>
+                    <label class="block font-rpg text-amber-200 mb-1.5">Çözünürlük</label>
                     <div class="grid grid-cols-3 gap-2">
-                        <button type="button" onclick="setGraphicsMode('native')" id="opt-mode-native" class="p-2.5 text-left rounded border transition-all">
+                        <button type="button" onclick="setGraphicsMode('native')" id="opt-mode-native" class="p-2 text-center rounded border transition-all">
                             <div class="font-bold text-amber-300">Yüksek</div>
-                            <div class="text-[10px] text-stone-400 mt-0.5">Netlik öncelikli</div>
                         </button>
-                        <button type="button" onclick="setGraphicsMode('balanced')" id="opt-mode-balanced" class="p-2.5 text-left rounded border transition-all">
+                        <button type="button" onclick="setGraphicsMode('balanced')" id="opt-mode-balanced" class="p-2 text-center rounded border transition-all">
                             <div class="font-bold text-amber-300">Dengeli</div>
-                            <div class="text-[10px] text-stone-400 mt-0.5">Açık ve akıcı</div>
                         </button>
-                        <button type="button" onclick="setGraphicsMode('performance')" id="opt-mode-performance" class="p-2.5 text-left rounded border transition-all">
+                        <button type="button" onclick="setGraphicsMode('performance')" id="opt-mode-performance" class="p-2 text-center rounded border transition-all">
                             <div class="font-bold text-amber-300">Akıcı</div>
-                            <div class="text-[10px] text-stone-400 mt-0.5">FPS öncelikli</div>
                         </button>
                     </div>
                 </div>
 
-                <!-- Aydınlatma ve Atmosfer -->
                 <div>
-                    <label class="block font-rpg text-amber-200 mb-1.5">☀️ Aydınlatma & Atmosfer (Sıfır Karanlık)</label>
+                    <label class="block font-rpg text-amber-200 mb-1.5">Aydınlatma</label>
                     <div class="grid grid-cols-2 gap-2">
-                        <button type="button" onclick="setLightingMode('fixed_noon')" id="opt-light-noon" class="p-2.5 text-left rounded border transition-all">
-                            <div class="font-bold text-amber-300">☀️ Parlak Öğle Güneşi (Işıl Işıl)</div>
-                            <div class="text-[10px] text-stone-400 mt-0.5">Daima aydınlık, altın rengi güneş ışığı, sıfır karanlık ve net görüş.</div>
+                        <button type="button" onclick="setLightingMode('fixed_noon')" id="opt-light-noon" class="p-2 text-center rounded border transition-all">
+                            <div class="font-bold text-amber-300">Güneş</div>
                         </button>
-                        <button type="button" onclick="setLightingMode('cycle')" id="opt-light-cycle" class="p-2.5 text-left rounded border transition-all">
-                            <div class="font-bold text-stone-200">🔄 Dinamik Gün Döngüsü</div>
-                            <div class="text-[10px] text-stone-400 mt-0.5">Sabah, öğle ve ikindi vakitleri arasında gerçekçi akış.</div>
+                        <button type="button" onclick="setLightingMode('cycle')" id="opt-light-cycle" class="p-2 text-center rounded border transition-all">
+                            <div class="font-bold text-stone-200">Döngü</div>
                         </button>
                     </div>
                 </div>
 
-                <!-- Gölge Kalitesi -->
                 <div>
-                    <label class="block font-rpg text-amber-200 mb-1.5">☀️ Gölge Kalitesi & Optimizasyon</label>
+                    <label class="block font-rpg text-amber-200 mb-1.5">Gölge</label>
                     <div class="grid grid-cols-3 gap-2">
                         <button type="button" onclick="setShadowQuality('soft')" id="opt-shadow-soft" class="p-2 text-center rounded border transition-all">
-                            <div class="font-bold text-amber-300">Yumuşak PCF</div>
-                            <div class="text-[9px] text-stone-400">Gerçekçi PCF gölgeler</div>
+                            <div class="font-bold text-amber-300">Yumuşak</div>
                         </button>
                         <button type="button" onclick="setShadowQuality('basic')" id="opt-shadow-basic" class="p-2 text-center rounded border transition-all">
                             <div class="font-bold text-stone-200">Basit</div>
-                            <div class="text-[9px] text-stone-400">Hafif gölge</div>
                         </button>
                         <button type="button" onclick="setShadowQuality('off')" id="opt-shadow-off" class="p-2 text-center rounded border transition-all">
                             <div class="font-bold text-stone-200">Kapalı</div>
-                            <div class="text-[9px] text-stone-400">+%35 FPS artışı</div>
                         </button>
                     </div>
                 </div>
 
-                <!-- Çim ve Doğa Yoğunluğu -->
                 <div>
-                    <label class="block font-rpg text-amber-200 mb-1.5">🌿 Çim ve Dünya Yoğunluğu</label>
+                    <label class="block font-rpg text-amber-200 mb-1.5">Çim</label>
                     <div class="grid grid-cols-3 gap-2">
                         <button type="button" onclick="setGrassDensity('high')" id="opt-grass-high" class="p-2 text-center rounded border transition-all">
-                            <div class="font-bold text-stone-200">Lush (Dolgun)</div>
-                            <div class="text-[9px] text-stone-400">4.500 Çim</div>
+                            <div class="font-bold text-stone-200">Dolgun</div>
                         </button>
                         <button type="button" onclick="setGrassDensity('medium')" id="opt-grass-medium" class="p-2 text-center rounded border transition-all">
-                            <div class="font-bold text-amber-300">Optimize (Önerilen)</div>
-                            <div class="text-[9px] text-stone-400">2.500 Çim</div>
+                            <div class="font-bold text-amber-300">İyi</div>
                         </button>
                         <button type="button" onclick="setGrassDensity('low')" id="opt-grass-low" class="p-2 text-center rounded border transition-all">
                             <div class="font-bold text-stone-200">Düşük</div>
-                            <div class="text-[9px] text-stone-400">1.000 Çim</div>
                         </button>
                     </div>
                 </div>
 
-                <!-- Aktif performans ayarları -->
-                <div class="p-3 bg-black/60 rounded border border-amber-900/40 text-[10px] space-y-1 text-stone-400">
-                    <div class="text-amber-300 font-bold font-rpg text-[11px] mb-1">Aktif performans ayarları:</div>
-                    <div>Render ölçeği varsayılan %70; düşük FPS'de %55'e kadar iner ve yükseltilerek ekrana sığdırılır.</div>
-                    <div>Gölge haritası iki render karesinde bir güncellenir; MSAA ve seçili gölge kalitesi korunur.</div>
-                    <div>Statik köy geometrileri birleştirilir; tekrarlanan çimler instancing ile çizilir.</div>
-                    <div>FPS toparlanınca render ölçeği en fazla %70'e çıkar; tam çözünürlüğe dönüp yeniden kasmaz.</div>
-                </div>
-
-                <!-- FPS Göstergesi Toggle -->
-                <div class="flex items-center justify-between pt-2 border-t border-amber-900/40">
-                    <span class="text-stone-300">Haritada Canlı FPS Sayacı Göster</span>
-                    <button type="button" id="toggle-fps-hud-btn" onclick="toggleFpsHud()" class="px-3 py-1 bg-amber-900/40 border border-amber-500/60 rounded text-amber-200">
-                        Açık
-                    </button>
+                <div class="p-2 rounded border border-amber-900/40 bg-black/60 text-[9px] text-stone-300 leading-relaxed">
+                    Render ölçeği %70 başlatılır, düşük FPS'de %55'e kadar iner ve tekrar yükselir. Gölgeler iki karede bir güncellenir; böylece sahne daha akıcı kalır.
                 </div>
             </div>
 
