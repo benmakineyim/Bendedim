@@ -3179,13 +3179,13 @@
                     </div>
                 </div>
 
-                <!-- Etkin performans ayarları -->
+                <!-- Aktif performans ayarları -->
                 <div class="p-3 bg-black/60 rounded border border-amber-900/40 text-[10px] space-y-1 text-stone-400">
-                    <div class="text-amber-300 font-bold font-rpg text-[11px] mb-1">Etkin performans ayarları:</div>
-                    <div>Gölge haritası kare dönüşümlü güncellenir; MSAA ve gölge kalitesi korunur.</div>
-                    <div>Çizim cihazın piksel oranını kullanır ve 4K render bütçesini aşmaz.</div>
+                    <div class="text-amber-300 font-bold font-rpg text-[11px] mb-1">Aktif performans ayarları:</div>
+                    <div>Doğal cihaz piksel oranı kullanılır; render çözünürlüğü 4K piksel bütçesini aşmaz.</div>
+                    <div>Gölge haritası iki render karesinde bir güncellenir; MSAA ve seçili gölge kalitesi korunur.</div>
                     <div>Statik köy geometrileri birleştirilir; tekrarlanan çimler instancing ile çizilir.</div>
-                    <div>FPS uzun süre düşük kalırsa çözünürlük ölçeği en fazla %10 düşer, toparlanınca kademeli geri çıkar.</div>
+                    <div>FPS uzun süre düşük kalırsa render ölçeği kademeli olarak en fazla %10 azaltılır.</div>
                 </div>
 
                 <!-- FPS Göstergesi Toggle -->
@@ -3369,7 +3369,7 @@
         let reducedGraphics = false;
         const ULTRA_HD_PIXEL_BUDGET = 3840 * 2160;
 
-        // 🌟 SABİT 4K ÇİZİM VE GRAFİK MODLARI
+        // Natural device resolution with a 4K pixel-budget ceiling.
         const graphicsConfig = {
             mode: 'native',
             scale: 1.0,
@@ -3387,7 +3387,7 @@
             lastSampleTime: performance.now(),
             lastHudUpdate: 0
         };
-        const performanceState = { lowFrameWindows: 0, highFrameWindows: 0 };
+        const performanceState = { lowFrameWindows: 0, highFrameWindows: 0, shadowFrame: 0 };
         const ADAPTIVE_RENDER_SCALE_MIN = 0.90;
         let plusNineParticles;
         let slashTrailMesh, slashTrailGeometry, slashTrailCoreMesh, slashTrailCoreGeometry, slashTrailHistory = [];
@@ -6784,7 +6784,7 @@
                 powerPreference: 'high-performance',
                 stencil: false,
                 alpha: false,
-                logarithmicDepthBuffer: true,
+                logarithmicDepthBuffer: true
             });
             renderer.debug.checkShaderErrors = false; // 🚀 getProgramInfoLog'un 747 ms CPU kilitlemesini engeller
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -24954,9 +24954,9 @@
                     renderer.shadowMap.type = graphicsConfig.shadowQuality === 'soft' 
                         ? THREE.PCFShadowMap 
                         : THREE.BasicShadowMap;
+                    renderer.shadowMap.autoUpdate = false;
+                    renderer.shadowMap.needsUpdate = true;
                 }
-                renderer.shadowMap.autoUpdate = false;
-                renderer.shadowMap.needsUpdate = true;
             }
 
             // 3. Çim yoğunluğu
@@ -25057,6 +25057,35 @@
             return `00:${String(Math.max(0, Math.ceil(seconds))).padStart(2, '0')}`;
         }
 
+        function captureGameRecordingFrame() {
+            const recording = activeGameRecording;
+            if (!recording || recording.finishing || recording.framePending) return;
+
+            const elapsed = (performance.now() - recording.startedAt) / 1000;
+            if (elapsed >= GAME_RECORDING_DURATION) {
+                void finishGameRecording();
+                return;
+            }
+
+            const frameDuration = 1 / GAME_RECORDING_FPS;
+            if (recording.frameCount > 0 && elapsed - recording.lastFrameAt < frameDuration * 0.8) return;
+
+            const timestamp = recording.frameCount === 0 ? 0 : elapsed;
+            recording.context.drawImage(recording.canvas, 0, 0, recording.width, recording.height);
+            recording.lastFrameAt = elapsed;
+            recording.frameCount++;
+            recording.framePending = true;
+            recording.framePromise = recording.source.add(
+                timestamp,
+                Math.min(frameDuration, GAME_RECORDING_DURATION - timestamp)
+            ).catch(error => {
+                recording.error = error;
+                void finishGameRecording();
+            }).finally(() => {
+                recording.framePending = false;
+            });
+        }
+
         async function recordGameClip() {
             if (activeGameRecording) {
                 await finishGameRecording();
@@ -25120,9 +25149,6 @@
                 await output.start();
 
                 const startedAt = performance.now();
-                context.drawImage(canvas, 0, 0, width, height);
-                await source.add(0, 1 / GAME_RECORDING_FPS);
-
                 const recording = {
                     output,
                     target,
@@ -25133,8 +25159,9 @@
                     height,
                     startedAt,
                     lastFrameAt: 0,
+                    frameCount: 0,
+                    framePending: false,
                     framePromise: Promise.resolve(),
-                    frameRequestId: 0,
                     timerId: 0,
                     statusId: 0,
                     finishing: false,
@@ -25149,34 +25176,6 @@
                 }
                 setGameRecordingStatus(`Kayıt: ${formatRecordingCountdown(GAME_RECORDING_DURATION)}`);
 
-                const captureFrame = async () => {
-                    if (activeGameRecording !== recording || recording.finishing) return;
-                    const elapsed = (performance.now() - recording.startedAt) / 1000;
-                    if (elapsed >= GAME_RECORDING_DURATION) {
-                        void finishGameRecording();
-                        return;
-                    }
-                    if (elapsed - recording.lastFrameAt >= 1 / GAME_RECORDING_FPS * 0.8) {
-                        recording.lastFrameAt = elapsed;
-                        recording.context.drawImage(recording.canvas, 0, 0, recording.width, recording.height);
-                        recording.framePromise = recording.source.add(
-                            elapsed,
-                            Math.min(1 / GAME_RECORDING_FPS, GAME_RECORDING_DURATION - elapsed)
-                        );
-                        try {
-                            await recording.framePromise;
-                        } catch (error) {
-                            recording.error = error;
-                            await finishGameRecording();
-                            return;
-                        }
-                    }
-                    if (activeGameRecording === recording && !recording.finishing) {
-                        recording.frameRequestId = window.requestAnimationFrame(captureFrame);
-                    }
-                };
-
-                recording.frameRequestId = window.requestAnimationFrame(captureFrame);
                 recording.statusId = window.setInterval(() => {
                     if (activeGameRecording !== recording) return;
                     const elapsed = (performance.now() - recording.startedAt) / 1000;
@@ -25198,7 +25197,6 @@
             recording.finishing = true;
             window.clearTimeout(recording.timerId);
             window.clearInterval(recording.statusId);
-            window.cancelAnimationFrame(recording.frameRequestId);
             setGameRecordingStatus('MP4 hazırlanıyor...');
 
             try {
@@ -25354,8 +25352,12 @@
             updateSkillCooldowns(rawDt);
             updateUploadedCharacterAnimation(rawDt);
             updateCameraPosition(rawDt);
-            renderer.shadowMap.needsUpdate = renderer.shadowMap.enabled && perfMonitor.frameCount % 2 === 0;
+            if (renderer.shadowMap.enabled) {
+                performanceState.shadowFrame++;
+                renderer.shadowMap.needsUpdate = performanceState.shadowFrame % 2 === 0;
+            }
             renderer.render(scene, camera);
+            captureGameRecordingFrame();
 
             profileSaveTimer += rawDt;
             if (profileSaveTimer >= 8) {
