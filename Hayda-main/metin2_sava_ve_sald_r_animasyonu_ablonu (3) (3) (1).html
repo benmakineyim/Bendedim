@@ -4851,27 +4851,10 @@
             setCameraView('default');
             updateCameraPosition(0.016);
 
-            // 🚀 PARALEL ASENKRON SHADER DERLEME (renderer.compile & checkShaderErrors = false)
-            // Senkron getProgramInfoLog ve getShaderInfoLog beklemesi olmadan GPU'da paralel derleme
-            if (updateStatus) updateStatus('Grafik donanımı ve shader\'lar önbelleğe alınıyor (%95)...', 95);
+            if (updateStatus) updateStatus('Grafik donanımı hazırlanıyor (%95)...', 95);
             await yieldToMain();
-
-            try {
-                renderer.debug.checkShaderErrors = false;
-                const gl = renderer.getContext();
-                if (gl) {
-                    gl.getExtension('KHR_parallel_shader_compile');
-                    gl.getProgramInfoLog = function() { return ""; };
-                    gl.getShaderInfoLog = function() { return ""; };
-                }
-                camera.updateMatrixWorld(true);
-                scene.updateMatrixWorld(true);
-                if (typeof renderer.compile === 'function') {
-                    renderer.compile(scene, camera);
-                }
-            } catch (compileErr) {
-                console.warn('renderer.compile uyarısı:', compileErr);
-            }
+            camera.updateMatrixWorld(true);
+            scene.updateMatrixWorld(true);
 
             if (updateStatus) updateStatus('Jinno Krallığına giriş yapılıyor (%100)...', 100);
             await yieldToMain();

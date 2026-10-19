@@ -9502,6 +9502,11 @@
                 return tree;
             };
 
+            const npcFaceDetailMats = {
+                eyeWhite: new THREE.MeshStandardMaterial({ color: 0xf3e9d5, roughness: 0.55 }),
+                ink: new THREE.MeshStandardMaterial({ color: 0x241b18, roughness: 0.82 })
+            };
+
             // Efsanevi Metin2 Demirci Ocağı (Blacksmith Forge Pavilion)
             const makeDemirciForgeStation = (x, z, yaw = 0) => {
                 const forge = new THREE.Group();
@@ -11061,11 +11066,6 @@
                 peasantCloth: new THREE.MeshStandardMaterial({ color: 0x6b7280, roughness: 0.92 }),
                 glowingSteel: new THREE.MeshStandardMaterial({ color: 0xff4500, emissive: 0xff6600, emissiveIntensity: 2.5, roughness: 0.25 })
             };
-            const npcFaceDetailMats = {
-                eyeWhite: new THREE.MeshStandardMaterial({ color: 0xf3e9d5, roughness: 0.55 }),
-                ink: new THREE.MeshStandardMaterial({ color: 0x241b18, roughness: 0.82 })
-            };
-
             const makeJinnoImperialPalace = (px, pz) => {
                 const palace = new THREE.Group();
                 const baseY = getVillageTerrainHeight(px, pz);
