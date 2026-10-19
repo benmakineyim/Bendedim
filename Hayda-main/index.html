@@ -3087,7 +3087,7 @@
                     </div>
                     <div>
                         <h2 id="graphics-settings-title" class="font-rpg text-base text-amber-100">Grafik ve Çözünürlük Algoritması</h2>
-                        <p class="text-[10px] text-stone-400">Yüksek Netlik & 60 FPS Sabitleyici Sistemi</p>
+                        <p class="text-[10px] text-stone-400">Yüksek netlik ve akıllı performans ayarı</p>
                     </div>
                 </div>
                 <button onclick="toggleGraphicsModal(false)" class="flex h-8 w-8 items-center justify-center border border-stone-700 text-stone-400 hover:border-amber-500 hover:text-amber-100 font-bold" title="Kapat">
@@ -3107,17 +3107,17 @@
                         </div>
                     </div>
                     <span class="text-[9px] px-2.5 py-1 rounded bg-amber-950/80 border border-amber-600/40 text-amber-200">
-                        ⚡ 60 FPS Sabitleyici Aktif
+                        ⚡ FPS Odaklı Uyarlama Aktif
                     </span>
                 </div>
 
                 <!-- Çözünürlük Algoritması -->
                 <div>
-                    <label class="block font-rpg text-amber-200 mb-1.5">⚡ Çözünürlük & Ultra HD Performans Modu</label>
+                    <label class="block font-rpg text-amber-200 mb-1.5">⚡ Ekran Çözünürlüğü & Performans</label>
                     <div class="grid grid-cols-1 gap-2">
-                        <button type="button" onclick="setGraphicsMode('ultrahd')" id="opt-mode-ultrahd" class="p-2.5 text-left rounded border transition-all">
-                            <div class="font-bold text-amber-300">🔥 Sabit 4K (3840×2160)</div>
-                            <div class="text-[10px] text-stone-400 mt-0.5">Ekran oranına uygun, sabit 4K çizim bütçesi. FPS düşünce çözünürlük düşürülmez.</div>
+                        <button type="button" onclick="setGraphicsMode()" id="opt-mode-native" class="p-2.5 text-left rounded border transition-all">
+                            <div class="font-bold text-amber-300">Doğal ekran çözünürlüğü</div>
+                            <div class="text-[10px] text-stone-400 mt-0.5">Ekranın piksel oranını kullanır; uzun süre düşük FPS olursa çözünürlüğü en fazla %10 azaltır.</div>
                         </button>
                     </div>
                 </div>
@@ -3142,7 +3142,7 @@
                     <label class="block font-rpg text-amber-200 mb-1.5">☀️ Gölge Kalitesi & Optimizasyon</label>
                     <div class="grid grid-cols-3 gap-2">
                         <button type="button" onclick="setShadowQuality('soft')" id="opt-shadow-soft" class="p-2 text-center rounded border transition-all">
-                            <div class="font-bold text-amber-300">Yumuşak (30Hz Hile)</div>
+                            <div class="font-bold text-amber-300">Yumuşak PCF</div>
                             <div class="text-[9px] text-stone-400">Gerçekçi PCF gölgeler</div>
                         </button>
                         <button type="button" onclick="setShadowQuality('basic')" id="opt-shadow-basic" class="p-2 text-center rounded border transition-all">
@@ -3175,14 +3175,13 @@
                     </div>
                 </div>
 
-                <!-- Aktif Optimizasyon Hileleri Listesi -->
+                <!-- Etkin performans ayarları -->
                 <div class="p-3 bg-black/60 rounded border border-amber-900/40 text-[10px] space-y-1 text-stone-400">
-                    <div class="text-amber-300 font-bold font-rpg text-[11px] mb-1">🚀 Aktif Optimizasyon Hileleri:</div>
-                    <div>⚡ <b>30Hz Akıllı Gölge Önbelleği:</b> Gölgeler dururken her 8 karede 1, hareket ederken 2 karede 1 güncellenir (%50 GPU tasarrufu).</div>
-                    <div>🎯 <b>Kahraman Odaklı Sıkı Gölge:</b> Gölge kamerası oyuncunun 32m çevresine odaklanır (Gölge netliği 2.5x artar).</div>
-                    <div>💎 <b>CSS Donanım Keskinleştirici:</b> Kenar tırtıkları donanım düzeyinde filtrelenerek 4K keskinliğine çıkarılır.</div>
-                    <div>🚀 <b>Sıfır Çöp Toplama (Zero-GC):</b> Bellek atıkları sıfırlandığı için ani FPS takılmaları ve mikro kasmalar engellenir.</div>
-                    <div>💡 <b>Kahraman Ön Dolgu Işığı:</b> Karakterin yüzü, zırhı ve kılıcı daima aydınlık kalır.</div>
+                    <div class="text-amber-300 font-bold font-rpg text-[11px] mb-1">Etkin performans ayarları:</div>
+                    <div>Gölge haritası kare dönüşümlü güncellenir; MSAA ve gölge kalitesi korunur.</div>
+                    <div>Çizim cihazın piksel oranını kullanır ve 4K render bütçesini aşmaz.</div>
+                    <div>Statik köy geometrileri birleştirilir; tekrarlanan çimler instancing ile çizilir.</div>
+                    <div>FPS uzun süre düşük kalırsa çözünürlük ölçeği en fazla %10 düşer, toparlanınca kademeli geri çıkar.</div>
                 </div>
 
                 <!-- FPS Göstergesi Toggle -->
@@ -3368,7 +3367,7 @@
 
         // 🌟 SABİT 4K ÇİZİM VE GRAFİK MODLARI
         const graphicsConfig = {
-            mode: 'ultrahd',        // Sabit 4K piksel bütçesi; FPS düşünce düşürülmez
+            mode: 'native',
             scale: 1.0,
             shadowQuality: 'soft',  // 'soft' (Hızlı Donanım PCF), 'basic', 'off'
             grassDensity: 'medium', // 'high', 'medium', 'low'
@@ -3384,7 +3383,8 @@
             lastSampleTime: performance.now(),
             lastHudUpdate: 0
         };
-        const performanceState = { sampleTime: 0, sampleFrames: 0, lowFrameWindows: 0, lastFrameTime: 0, reduced: false };
+        const performanceState = { lowFrameWindows: 0, highFrameWindows: 0 };
+        const ADAPTIVE_RENDER_SCALE_MIN = 0.90;
         let plusNineParticles;
         let slashTrailMesh, slashTrailGeometry, slashTrailCoreMesh, slashTrailCoreGeometry, slashTrailHistory = [];
 
@@ -6781,7 +6781,6 @@
                 stencil: false,
                 alpha: false,
                 logarithmicDepthBuffer: true,
-                preserveDrawingBuffer: true
             });
             renderer.debug.checkShaderErrors = false; // 🚀 getProgramInfoLog'un 747 ms CPU kilitlemesini engeller
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -6790,7 +6789,8 @@
             // Donanım Hızlandırmalı PCF Gölge Haritası (PCFSoft'a göre 4 kat daha hızlı)
             renderer.shadowMap.enabled = graphicsConfig.shadowQuality !== 'off';
             renderer.shadowMap.type = THREE.PCFShadowMap;
-            renderer.shadowMap.autoUpdate = true;
+            renderer.shadowMap.autoUpdate = false;
+            renderer.shadowMap.needsUpdate = true;
 
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             container.appendChild(renderer.domElement);
@@ -24872,7 +24872,7 @@
                 } else {
                     localStorage.removeItem('metin2_graphics_settings');
                 }
-                graphicsConfig.mode = 'ultrahd';
+                graphicsConfig.mode = 'native';
                 graphicsConfig.scale = 1.0;
             } catch (e) {
                 console.warn('Grafik ayarları okunamadı:', e);
@@ -24898,14 +24898,38 @@
             const pixelBudgetRatio = Math.sqrt(ULTRA_HD_PIXEL_BUDGET / (width * height));
             const maxDimension = Math.max(width, height);
             const textureLimit = renderer ? renderer.capabilities.maxTextureSize / maxDimension : Infinity;
-            return Math.min(pixelBudgetRatio, textureLimit);
+            const nativePixelRatio = Math.max(0.75, window.devicePixelRatio || 1);
+            return Math.min(nativePixelRatio * graphicsConfig.scale, pixelBudgetRatio, textureLimit);
         }
 
         function updateRendererResolution() {
             if (!renderer) return;
             const targetDpr = getTargetRendererPixelRatio();
-            if (Math.abs(renderer.getPixelRatio() - targetDpr) > 0.02) {
+            if (Math.abs(renderer.getPixelRatio() - targetDpr) > 0.005) {
                 renderer.setPixelRatio(targetDpr);
+            }
+        }
+
+        function updateAdaptiveRenderScale(fps) {
+            if (fps < 52) {
+                performanceState.lowFrameWindows++;
+                performanceState.highFrameWindows = 0;
+                if (performanceState.lowFrameWindows >= 2 && graphicsConfig.scale > ADAPTIVE_RENDER_SCALE_MIN) {
+                    graphicsConfig.scale = Math.max(ADAPTIVE_RENDER_SCALE_MIN, Math.round((graphicsConfig.scale - 0.05) * 100) / 100);
+                    performanceState.lowFrameWindows = 0;
+                    updateRendererResolution();
+                }
+            } else if (fps > 58) {
+                performanceState.lowFrameWindows = 0;
+                performanceState.highFrameWindows++;
+                if (performanceState.highFrameWindows >= 5 && graphicsConfig.scale < 1) {
+                    graphicsConfig.scale = Math.min(1, Math.round((graphicsConfig.scale + 0.02) * 100) / 100);
+                    performanceState.highFrameWindows = 0;
+                    updateRendererResolution();
+                }
+            } else {
+                performanceState.lowFrameWindows = 0;
+                performanceState.highFrameWindows = 0;
             }
         }
 
@@ -24926,8 +24950,9 @@
                     renderer.shadowMap.type = graphicsConfig.shadowQuality === 'soft' 
                         ? THREE.PCFShadowMap 
                         : THREE.BasicShadowMap;
-                    renderer.shadowMap.autoUpdate = true;
                 }
+                renderer.shadowMap.autoUpdate = false;
+                renderer.shadowMap.needsUpdate = true;
             }
 
             // 3. Çim yoğunluğu
@@ -24938,8 +24963,10 @@
         }
 
         function setGraphicsMode() {
-            graphicsConfig.mode = 'ultrahd';
+            graphicsConfig.mode = 'native';
             graphicsConfig.scale = 1.0;
+            performanceState.lowFrameWindows = 0;
+            performanceState.highFrameWindows = 0;
             applyGraphicsSettings();
             updateGraphicsModalUi();
             saveGraphicsSettings();
@@ -25007,7 +25034,7 @@
         }
 
         function updateGraphicsModalUi() {
-            ['ultrahd'].forEach(m => {
+            ['native'].forEach(m => {
                 const btn = document.getElementById(`opt-mode-${m}`);
                 if (!btn) return;
                 const isSelected = graphicsConfig.mode === m;
@@ -25086,7 +25113,7 @@
                 const w = Math.round(window.innerWidth * renderer.getPixelRatio());
                 const h = Math.round(window.innerHeight * renderer.getPixelRatio());
                 const pct = Math.round(renderer.getPixelRatio() * 100);
-                const tag = graphicsConfig.mode === 'ultrahd' ? ' [Sabit 4K]' : '';
+                const tag = graphicsConfig.scale < 1 ? ' [Uyarlanıyor]' : ' [Doğal]';
                 modalRes.textContent = `%${pct} (${w}x${h})${tag}`;
             }
         }
@@ -25110,6 +25137,7 @@
                 perfMonitor.frameCount = 0;
                 perfMonitor.lastSampleTime = now;
 
+                updateAdaptiveRenderScale(perfMonitor.fps);
                 updatePerfHudUi(graphicsConfig.scale);
             }
 
@@ -25118,6 +25146,7 @@
             updateSkillCooldowns(rawDt);
             updateUploadedCharacterAnimation(rawDt);
             updateCameraPosition(rawDt);
+            renderer.shadowMap.needsUpdate = renderer.shadowMap.enabled && perfMonitor.frameCount % 2 === 0;
             renderer.render(scene, camera);
 
             profileSaveTimer += rawDt;
