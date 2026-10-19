@@ -1246,8 +1246,8 @@
                     <button class="m2-map-btn font-bold text-cyan-300 hover:text-cyan-200" onclick="toggleTeleportModal()" title="Bölgeler Atlası (M)" aria-label="Atlas">M</button>
                 </div>
             </div>
+            <div id="game-record-status" class="hidden mt-1 max-w-[190px] rounded border border-rose-700/70 bg-black/90 px-2 py-1 text-right text-[9px] font-bold text-rose-200 shadow-lg" role="status" aria-live="polite"></div>
         </div>
-        <div id="game-record-status" class="hidden mt-1 max-w-[190px] rounded border border-rose-700/70 bg-black/90 px-2 py-1 text-right text-[9px] font-bold text-rose-200 shadow-lg" role="status" aria-live="polite"></div>
     </aside>
 
     <!-- Metin2 Otantik Parşömen Görev Sistemi (Quest Scroll) -->
@@ -25039,6 +25039,8 @@
 
         const GAME_RECORDING_DURATION = 15;
         const GAME_RECORDING_FPS = 30;
+        const GAME_RECORDING_MAX_WIDTH = 1920;
+        const GAME_RECORDING_MAX_HEIGHT = 1080;
         let activeGameRecording = null;
         let gameRecorderModulePromise = null;
 
@@ -25052,8 +25054,7 @@
         }
 
         function formatRecordingCountdown(seconds) {
-            const rounded = Math.max(0, Math.ceil(seconds));
-            return `00:${String(rounded).padStart(2, '0')}`;
+            return `00:${String(Math.max(0, Math.ceil(seconds))).padStart(2, '0')}`;
         }
 
         async function recordGameClip() {
@@ -25064,8 +25065,8 @@
 
             const button = document.getElementById('game-record-button');
             const canvas = renderer && renderer.domElement;
-            if (!canvas || typeof canvas.captureStream !== 'function') {
-                setGameRecordingStatus('Bu tarayıcı oyun görüntüsü kaydını desteklemiyor.', true);
+            if (!canvas || typeof canvas.getContext !== 'function') {
+                setGameRecordingStatus('Oyun görüntüsü kaydedilemiyor.', true);
                 return;
             }
             if (!window.VideoEncoder || typeof window.VideoEncoder.isConfigSupported !== 'function') {
@@ -25073,19 +25074,20 @@
                 return;
             }
 
-            button.disabled = true;
+            if (button) button.disabled = true;
             setGameRecordingStatus('MP4 kaydı hazırlanıyor...');
 
-            let stream = null;
             let output = null;
             try {
-                const width = canvas.width & ~1;
-                const height = canvas.height & ~1;
+                const scale = Math.min(1, GAME_RECORDING_MAX_WIDTH / canvas.width, GAME_RECORDING_MAX_HEIGHT / canvas.height);
+                const width = Math.max(2, Math.floor(canvas.width * scale) & ~1);
+                const height = Math.max(2, Math.floor(canvas.height * scale) & ~1);
+                const bitrate = Math.round(Math.min(12_000_000, Math.max(5_000_000, width * height * GAME_RECORDING_FPS * 0.12)));
                 const encoderConfig = {
                     codec: 'avc1.42001f',
                     width,
                     height,
-                    bitrate: 8_000_000,
+                    bitrate,
                     framerate: GAME_RECORDING_FPS
                 };
                 const support = await window.VideoEncoder.isConfigSupported(encoderConfig);
@@ -25099,49 +25101,93 @@
                         throw error;
                     });
                 }
-                const { Output, Mp4OutputFormat, BufferTarget, MediaStreamVideoTrackSource } = await gameRecorderModulePromise;
-                stream = canvas.captureStream(GAME_RECORDING_FPS);
-                const videoTrack = stream.getVideoTracks()[0];
-                if (!videoTrack) throw new Error('Oyun görüntü akışı başlatılamadı.');
+                const { Output, Mp4OutputFormat, BufferTarget, CanvasSource } = await gameRecorderModulePromise;
+                const recordingCanvas = document.createElement('canvas');
+                recordingCanvas.width = width;
+                recordingCanvas.height = height;
+                const context = recordingCanvas.getContext('2d', { alpha: false });
+                if (!context) throw new Error('Video karesi oluşturulamadı.');
+                context.imageSmoothingEnabled = true;
+                context.imageSmoothingQuality = 'high';
 
                 const target = new BufferTarget();
                 output = new Output({ format: new Mp4OutputFormat(), target });
-                const source = new MediaStreamVideoTrackSource(videoTrack, {
+                const source = new CanvasSource(recordingCanvas, {
                     codec: 'avc',
-                    bitrate: 8_000_000
-                }, {
-                    frameRate: GAME_RECORDING_FPS,
-                    timestampBase: 'zero'
+                    bitrate
                 });
-                output.addVideoTrack(source);
+                output.addVideoTrack(source, { frameRate: GAME_RECORDING_FPS });
                 await output.start();
 
-                activeGameRecording = {
+                const startedAt = performance.now();
+                context.drawImage(canvas, 0, 0, width, height);
+                await source.add(0, 1 / GAME_RECORDING_FPS);
+
+                const recording = {
                     output,
-                    stream,
-                    startedAt: performance.now(),
+                    target,
+                    source,
+                    context,
+                    canvas,
+                    width,
+                    height,
+                    startedAt,
+                    lastFrameAt: 0,
+                    framePromise: Promise.resolve(),
+                    frameRequestId: 0,
                     timerId: 0,
                     statusId: 0,
-                    finishing: false
+                    finishing: false,
+                    error: null
                 };
-                button.disabled = false;
-                button.classList.add('animate-pulse', 'text-rose-300');
-                button.setAttribute('aria-label', 'Kaydı bitir ve MP4 indir');
-                button.title = 'Kaydı bitir ve MP4 indir';
+                activeGameRecording = recording;
+                if (button) {
+                    button.disabled = false;
+                    button.classList.add('animate-pulse', 'text-rose-300');
+                    button.setAttribute('aria-label', 'Kaydı bitir ve MP4 indir');
+                    button.title = 'Kaydı bitir ve MP4 indir';
+                }
                 setGameRecordingStatus(`Kayıt: ${formatRecordingCountdown(GAME_RECORDING_DURATION)}`);
 
-                activeGameRecording.statusId = window.setInterval(() => {
-                    if (!activeGameRecording) return;
-                    const elapsed = (performance.now() - activeGameRecording.startedAt) / 1000;
+                const captureFrame = async () => {
+                    if (activeGameRecording !== recording || recording.finishing) return;
+                    const elapsed = (performance.now() - recording.startedAt) / 1000;
+                    if (elapsed >= GAME_RECORDING_DURATION) {
+                        void finishGameRecording();
+                        return;
+                    }
+                    if (elapsed - recording.lastFrameAt >= 1 / GAME_RECORDING_FPS * 0.8) {
+                        recording.lastFrameAt = elapsed;
+                        recording.context.drawImage(recording.canvas, 0, 0, recording.width, recording.height);
+                        recording.framePromise = recording.source.add(
+                            elapsed,
+                            Math.min(1 / GAME_RECORDING_FPS, GAME_RECORDING_DURATION - elapsed)
+                        );
+                        try {
+                            await recording.framePromise;
+                        } catch (error) {
+                            recording.error = error;
+                            await finishGameRecording();
+                            return;
+                        }
+                    }
+                    if (activeGameRecording === recording && !recording.finishing) {
+                        recording.frameRequestId = window.requestAnimationFrame(captureFrame);
+                    }
+                };
+
+                recording.frameRequestId = window.requestAnimationFrame(captureFrame);
+                recording.statusId = window.setInterval(() => {
+                    if (activeGameRecording !== recording) return;
+                    const elapsed = (performance.now() - recording.startedAt) / 1000;
                     setGameRecordingStatus(`Kayıt: ${formatRecordingCountdown(GAME_RECORDING_DURATION - elapsed)}`);
                 }, 250);
-                activeGameRecording.timerId = window.setTimeout(finishGameRecording, GAME_RECORDING_DURATION * 1000);
+                recording.timerId = window.setTimeout(finishGameRecording, GAME_RECORDING_DURATION * 1000);
             } catch (error) {
-                if (stream) stream.getTracks().forEach(track => track.stop());
                 if (output) {
                     try { await output.cancel(); } catch (cancelError) {}
                 }
-                button.disabled = false;
+                if (button) button.disabled = false;
                 setGameRecordingStatus(error instanceof Error ? error.message : String(error), true);
             }
         }
@@ -25152,11 +25198,23 @@
             recording.finishing = true;
             window.clearTimeout(recording.timerId);
             window.clearInterval(recording.statusId);
+            window.cancelAnimationFrame(recording.frameRequestId);
             setGameRecordingStatus('MP4 hazırlanıyor...');
 
             try {
+                await recording.framePromise;
+                if (recording.error) throw recording.error;
                 await recording.output.finalize();
-                const blob = new Blob([recording.output.target.buffer], { type: 'video/mp4' });
+                const buffer = recording.target.buffer;
+                if (!(buffer instanceof ArrayBuffer) || buffer.byteLength < 16) {
+                    throw new Error('MP4 dosyası boş veya eksik oluşturuldu.');
+                }
+                const signature = new TextDecoder().decode(new Uint8Array(buffer, 4, 4));
+                if (signature !== 'ftyp') {
+                    throw new Error('Oluşturulan video geçerli MP4 biçiminde değil.');
+                }
+
+                const blob = new Blob([buffer], { type: 'video/mp4' });
                 const url = URL.createObjectURL(blob);
                 const download = document.createElement('a');
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -25167,11 +25225,10 @@
                 download.click();
                 download.remove();
                 window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-                setGameRecordingStatus('15 saniyelik MP4 indirildi.');
+                setGameRecordingStatus(`MP4 indirildi (${(blob.size / 1_048_576).toFixed(1)} MB).`);
             } catch (error) {
                 setGameRecordingStatus(error instanceof Error ? error.message : 'MP4 dosyası oluşturulamadı.', true);
             } finally {
-                recording.stream.getTracks().forEach(track => track.stop());
                 activeGameRecording = null;
                 const button = document.getElementById('game-record-button');
                 if (button) {
