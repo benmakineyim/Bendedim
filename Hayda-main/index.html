@@ -1238,12 +1238,16 @@
             <div class="mt-0.5 flex items-center justify-between w-full px-1 text-[8px]">
                 <span id="metin2-coords" class="font-mono text-amber-200 text-[8px] font-bold drop-shadow">(432, 681)</span>
                 <div class="flex items-center gap-0.5">
+                    <button id="game-record-button" type="button" class="m2-map-btn text-rose-400 hover:text-rose-300" onclick="recordGameClip()" title="15 saniyelik MP4 kaydı başlat" aria-label="15 saniyelik MP4 kaydı başlat">
+                        <svg class="w-3 h-3" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="8" cy="8" r="4.5"/></svg>
+                    </button>
                     <button class="m2-map-btn" title="Yakınlaştır" aria-label="Yakınlaştır">+</button>
                     <button class="m2-map-btn" title="Uzaklaştır" aria-label="Uzaklaştır">-</button>
                     <button class="m2-map-btn font-bold text-cyan-300 hover:text-cyan-200" onclick="toggleTeleportModal()" title="Bölgeler Atlası (M)" aria-label="Atlas">M</button>
                 </div>
             </div>
         </div>
+        <div id="game-record-status" class="hidden mt-1 max-w-[190px] rounded border border-rose-700/70 bg-black/90 px-2 py-1 text-right text-[9px] font-bold text-rose-200 shadow-lg" role="status" aria-live="polite"></div>
     </aside>
 
     <!-- Metin2 Otantik Parşömen Görev Sistemi (Quest Scroll) -->
@@ -25030,6 +25034,153 @@
                 modal.classList.remove('hidden');
             } else {
                 modal.classList.add('hidden');
+            }
+        }
+
+        const GAME_RECORDING_DURATION = 15;
+        const GAME_RECORDING_FPS = 30;
+        let activeGameRecording = null;
+        let gameRecorderModulePromise = null;
+
+        function setGameRecordingStatus(message, isError = false) {
+            const status = document.getElementById('game-record-status');
+            if (!status) return;
+            status.textContent = message;
+            status.classList.toggle('hidden', !message);
+            status.classList.toggle('text-rose-200', !isError);
+            status.classList.toggle('text-amber-200', isError);
+        }
+
+        function formatRecordingCountdown(seconds) {
+            const rounded = Math.max(0, Math.ceil(seconds));
+            return `00:${String(rounded).padStart(2, '0')}`;
+        }
+
+        async function recordGameClip() {
+            if (activeGameRecording) {
+                await finishGameRecording();
+                return;
+            }
+
+            const button = document.getElementById('game-record-button');
+            const canvas = renderer && renderer.domElement;
+            if (!canvas || typeof canvas.captureStream !== 'function') {
+                setGameRecordingStatus('Bu tarayıcı oyun görüntüsü kaydını desteklemiyor.', true);
+                return;
+            }
+            if (!window.VideoEncoder || typeof window.VideoEncoder.isConfigSupported !== 'function') {
+                setGameRecordingStatus('MP4 kaydı için güncel Chrome veya Edge kullanın.', true);
+                return;
+            }
+
+            button.disabled = true;
+            setGameRecordingStatus('MP4 kaydı hazırlanıyor...');
+
+            let stream = null;
+            let output = null;
+            try {
+                const width = canvas.width & ~1;
+                const height = canvas.height & ~1;
+                const encoderConfig = {
+                    codec: 'avc1.42001f',
+                    width,
+                    height,
+                    bitrate: 8_000_000,
+                    framerate: GAME_RECORDING_FPS
+                };
+                const support = await window.VideoEncoder.isConfigSupported(encoderConfig);
+                if (!support.supported) {
+                    throw new Error('Bu cihaz H.264/MP4 video kodlamasını desteklemiyor.');
+                }
+
+                if (!gameRecorderModulePromise) {
+                    gameRecorderModulePromise = import('./vendor/mediabunny/mediabunny-recorder.mjs').catch(error => {
+                        gameRecorderModulePromise = null;
+                        throw error;
+                    });
+                }
+                const { Output, Mp4OutputFormat, BufferTarget, MediaStreamVideoTrackSource } = await gameRecorderModulePromise;
+                stream = canvas.captureStream(GAME_RECORDING_FPS);
+                const videoTrack = stream.getVideoTracks()[0];
+                if (!videoTrack) throw new Error('Oyun görüntü akışı başlatılamadı.');
+
+                const target = new BufferTarget();
+                output = new Output({ format: new Mp4OutputFormat(), target });
+                const source = new MediaStreamVideoTrackSource(videoTrack, {
+                    codec: 'avc',
+                    bitrate: 8_000_000
+                }, {
+                    frameRate: GAME_RECORDING_FPS,
+                    timestampBase: 'zero'
+                });
+                output.addVideoTrack(source);
+                await output.start();
+
+                activeGameRecording = {
+                    output,
+                    stream,
+                    startedAt: performance.now(),
+                    timerId: 0,
+                    statusId: 0,
+                    finishing: false
+                };
+                button.disabled = false;
+                button.classList.add('animate-pulse', 'text-rose-300');
+                button.setAttribute('aria-label', 'Kaydı bitir ve MP4 indir');
+                button.title = 'Kaydı bitir ve MP4 indir';
+                setGameRecordingStatus(`Kayıt: ${formatRecordingCountdown(GAME_RECORDING_DURATION)}`);
+
+                activeGameRecording.statusId = window.setInterval(() => {
+                    if (!activeGameRecording) return;
+                    const elapsed = (performance.now() - activeGameRecording.startedAt) / 1000;
+                    setGameRecordingStatus(`Kayıt: ${formatRecordingCountdown(GAME_RECORDING_DURATION - elapsed)}`);
+                }, 250);
+                activeGameRecording.timerId = window.setTimeout(finishGameRecording, GAME_RECORDING_DURATION * 1000);
+            } catch (error) {
+                if (stream) stream.getTracks().forEach(track => track.stop());
+                if (output) {
+                    try { await output.cancel(); } catch (cancelError) {}
+                }
+                button.disabled = false;
+                setGameRecordingStatus(error instanceof Error ? error.message : String(error), true);
+            }
+        }
+
+        async function finishGameRecording() {
+            const recording = activeGameRecording;
+            if (!recording || recording.finishing) return;
+            recording.finishing = true;
+            window.clearTimeout(recording.timerId);
+            window.clearInterval(recording.statusId);
+            setGameRecordingStatus('MP4 hazırlanıyor...');
+
+            try {
+                await recording.output.finalize();
+                const blob = new Blob([recording.output.target.buffer], { type: 'video/mp4' });
+                const url = URL.createObjectURL(blob);
+                const download = document.createElement('a');
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                download.href = url;
+                download.download = `yang-shin-kayit-${timestamp}.mp4`;
+                download.style.display = 'none';
+                document.body.appendChild(download);
+                download.click();
+                download.remove();
+                window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                setGameRecordingStatus('15 saniyelik MP4 indirildi.');
+            } catch (error) {
+                setGameRecordingStatus(error instanceof Error ? error.message : 'MP4 dosyası oluşturulamadı.', true);
+            } finally {
+                recording.stream.getTracks().forEach(track => track.stop());
+                activeGameRecording = null;
+                const button = document.getElementById('game-record-button');
+                if (button) {
+                    button.disabled = false;
+                    button.classList.remove('animate-pulse', 'text-rose-300');
+                    button.setAttribute('aria-label', '15 saniyelik MP4 kaydı başlat');
+                    button.title = '15 saniyelik MP4 kaydı başlat';
+                }
+                window.setTimeout(() => setGameRecordingStatus(''), 5000);
             }
         }
 
