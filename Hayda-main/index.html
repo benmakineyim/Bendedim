@@ -3118,10 +3118,18 @@
                 <!-- Çözünürlük Algoritması -->
                 <div>
                     <label class="block font-rpg text-amber-200 mb-1.5">⚡ Ekran Çözünürlüğü & Performans</label>
-                    <div class="grid grid-cols-1 gap-2">
-                        <button type="button" onclick="setGraphicsMode()" id="opt-mode-native" class="p-2.5 text-left rounded border transition-all">
-                            <div class="font-bold text-amber-300">Doğal ekran çözünürlüğü</div>
-                            <div class="text-[10px] text-stone-400 mt-0.5">Ekranın piksel oranını kullanır; uzun süre düşük FPS olursa çözünürlüğü en fazla %10 azaltır.</div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" onclick="setGraphicsMode('native')" id="opt-mode-native" class="p-2.5 text-left rounded border transition-all">
+                            <div class="font-bold text-amber-300">Yüksek</div>
+                            <div class="text-[10px] text-stone-400 mt-0.5">Netlik öncelikli</div>
+                        </button>
+                        <button type="button" onclick="setGraphicsMode('balanced')" id="opt-mode-balanced" class="p-2.5 text-left rounded border transition-all">
+                            <div class="font-bold text-amber-300">Dengeli</div>
+                            <div class="text-[10px] text-stone-400 mt-0.5">Açık ve akıcı</div>
+                        </button>
+                        <button type="button" onclick="setGraphicsMode('performance')" id="opt-mode-performance" class="p-2.5 text-left rounded border transition-all">
+                            <div class="font-bold text-amber-300">Akıcı</div>
+                            <div class="text-[10px] text-stone-400 mt-0.5">FPS öncelikli</div>
                         </button>
                     </div>
                 </div>
@@ -3373,7 +3381,7 @@
 
         // Reduced render scale keeps GPU load predictable while preserving display size.
         const graphicsConfig = {
-            mode: 'native',
+            mode: 'performance',
             scale: BASE_RENDER_SCALE,
             shadowQuality: 'soft',  // 'soft' (Hızlı Donanım PCF), 'basic', 'off'
             grassDensity: 'medium', // 'high', 'medium', 'low'
@@ -24877,10 +24885,20 @@
                 } else {
                     localStorage.removeItem('metin2_graphics_settings');
                 }
-                graphicsConfig.mode = 'native';
-                graphicsConfig.scale = 1.0;
+
+                if (!['native', 'balanced', 'performance'].includes(graphicsConfig.mode)) {
+                    graphicsConfig.mode = 'performance';
+                }
+
+                if (typeof graphicsConfig.scale !== 'number' || Number.isNaN(graphicsConfig.scale)) {
+                    graphicsConfig.scale = graphicsConfig.mode === 'native' ? 1 : graphicsConfig.mode === 'balanced' ? 0.85 : BASE_RENDER_SCALE;
+                }
+
+                graphicsConfig.scale = Math.min(1, Math.max(ADAPTIVE_RENDER_SCALE_MIN, graphicsConfig.scale));
             } catch (e) {
                 console.warn('Grafik ayarları okunamadı:', e);
+                graphicsConfig.mode = 'performance';
+                graphicsConfig.scale = BASE_RENDER_SCALE;
             }
         }
 
@@ -24888,6 +24906,7 @@
             try {
                 localStorage.setItem('metin2_graphics_settings_v2', JSON.stringify({
                     mode: graphicsConfig.mode,
+                    scale: graphicsConfig.scale,
                     shadowQuality: graphicsConfig.shadowQuality,
                     grassDensity: graphicsConfig.grassDensity,
                     showHud: graphicsConfig.showHud,
@@ -24967,9 +24986,10 @@
             updatePerfHudUi(graphicsConfig.scale);
         }
 
-        function setGraphicsMode() {
-            graphicsConfig.mode = 'native';
-            graphicsConfig.scale = 1.0;
+        function setGraphicsMode(mode = 'performance') {
+            const validModes = { native: 1.0, balanced: 0.85, performance: BASE_RENDER_SCALE };
+            graphicsConfig.mode = validModes[mode] ? mode : 'performance';
+            graphicsConfig.scale = validModes[graphicsConfig.mode] ?? BASE_RENDER_SCALE;
             performanceState.lowFrameWindows = 0;
             performanceState.highFrameWindows = 0;
             applyGraphicsSettings();
@@ -25241,7 +25261,7 @@
         }
 
         function updateGraphicsModalUi() {
-            ['native'].forEach(m => {
+            ['native', 'balanced', 'performance'].forEach(m => {
                 const btn = document.getElementById(`opt-mode-${m}`);
                 if (!btn) return;
                 const isSelected = graphicsConfig.mode === m;
