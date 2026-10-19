@@ -1093,6 +1093,16 @@
             #inventory-window section[aria-label="Karakter ekipmanı"] { border-right: 0; }
             #inventory-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
             .item-slot { font-size: 19px; }
+            #graphics-settings-button {
+                bottom: 5.5rem !important;
+                right: 0.75rem !important;
+                padding: 0.45rem 0.8rem !important;
+                font-size: 9px !important;
+            }
+            #graphics-panel-window {
+                width: min(92vw, 30rem) !important;
+                max-height: 80vh !important;
+            }
         }
         @media (max-width: 768px) {
             #metin2-taskbar #quickbar {
@@ -1203,7 +1213,7 @@
         </div>
     </div>
 
-    <button id="graphics-settings-button" type="button" onclick="toggleGraphicsModal(true)" aria-label="Ayarlar" title="Ayarlar" class="fixed z-30 bottom-28 right-4 sm:hidden flex items-center gap-1.5 rounded-full border border-amber-500/70 bg-[#1a1207]/95 px-3 py-1.5 text-[10px] font-bold text-amber-200 shadow-[0_0_18px_rgba(245,158,11,0.28)] active:scale-95">
+    <button id="graphics-settings-button" type="button" onclick="toggleGraphicsModal(true)" aria-label="Ayarlar" title="Ayarlar" class="fixed z-30 bottom-28 right-3 sm:hidden flex items-center gap-1.5 rounded-full border border-amber-500/70 bg-[#1a1207]/95 px-3 py-1.5 text-[10px] font-bold text-amber-200 shadow-[0_0_18px_rgba(245,158,11,0.28)] active:scale-95">
         <span>⚙</span>
         <span>Ayarlar</span>
     </button>
@@ -3088,7 +3098,7 @@
 
     <!-- GRAFİK VE ÇÖZÜNÜRLÜK AYARLARI MODALI -->
     <div id="graphics-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" onclick="if (event.target === this) toggleGraphicsModal(false)">
-        <section class="inventory-window w-full max-w-lg overflow-hidden text-stone-200 border border-amber-600/70 shadow-2xl rounded-sm" role="dialog" aria-modal="true" aria-labelledby="graphics-settings-title">
+        <section id="graphics-panel-window" class="inventory-window w-full max-w-lg overflow-hidden text-stone-200 border border-amber-600/70 shadow-2xl rounded-sm" role="dialog" aria-modal="true" aria-labelledby="graphics-settings-title">
             <div class="flex items-center justify-between border-b border-amber-800/60 bg-gradient-to-r from-amber-950/40 to-stone-950 px-5 py-3">
                 <div class="flex items-center gap-3">
                     <div class="flex h-9 w-9 items-center justify-center border border-amber-500/80 bg-stone-900 text-amber-300">
