@@ -2368,8 +2368,50 @@
             };
         }
 
+        function createBladeEnvironmentMap() {
+            const faceSettings = [
+                { background: '#101923', light: '#e9f2f7', rect: [34, 52, 36, 148] },
+                { background: '#101923', light: '#f9fcff', rect: [178, 38, 42, 180] },
+                { background: '#6c7881', light: '#ffffff', rect: [18, 26, 220, 34] },
+                { background: '#080d12', light: '#b8c4cc', rect: [34, 178, 188, 22] },
+                { background: '#26323c', light: '#dfe9ef', rect: [28, 56, 28, 142] },
+                { background: '#111820', light: '#f6fbff', rect: [198, 44, 30, 170] }
+            ];
+            const faces = faceSettings.map(({ background, light, rect }) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 256;
+                const context = canvas.getContext('2d');
+                context.fillStyle = background;
+                context.fillRect(0, 0, 256, 256);
+                const gradient = context.createLinearGradient(0, 0, 256, 0);
+                gradient.addColorStop(0, 'rgba(255,255,255,0)');
+                gradient.addColorStop(0.5, 'rgba(255,255,255,0.16)');
+                gradient.addColorStop(1, 'rgba(0,0,0,0.2)');
+                context.fillStyle = gradient;
+                context.fillRect(0, 0, 256, 256);
+                context.shadowColor = light;
+                context.shadowBlur = 24;
+                context.fillStyle = light;
+                context.fillRect(...rect);
+                context.shadowBlur = 0;
+                return canvas;
+            });
+            const cubeTexture = new THREE.CubeTexture(faces);
+            cubeTexture.encoding = THREE.sRGBEncoding;
+            cubeTexture.needsUpdate = true;
+
+            const generator = new THREE.PMREMGenerator(renderer);
+            generator.compileCubemapShader();
+            const environment = generator.fromCubemap(cubeTexture).texture;
+            generator.dispose();
+            cubeTexture.dispose();
+            return environment;
+        }
+
         function initMaterials(textures) {
             const { skinAlbedoTex, muscleBumpTex, gloveTex, gunAnimeTex, damascusTex } = textures;
+            const bladeEnvironment = createBladeEnvironmentMap();
 
             sharedMaterials.skin = new THREE.MeshStandardMaterial({
                 map: skinAlbedoTex,
@@ -2470,27 +2512,29 @@
                 roughness: 0.18,
                 metalness: 0.94
             });
-            sharedMaterials.bayonetBlade = new THREE.MeshStandardMaterial({
-                map: damascusTex,
-                color: 0xffffff,
-                roughness: 0.28,
-                metalness: 0.26,
-                bumpMap: damascusTex,
-                bumpScale: 0.0015,
+            sharedMaterials.bayonetBlade = new THREE.MeshPhysicalMaterial({
+                color: 0xf4f8fb,
+                roughness: 0.07,
+                metalness: 0.86,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.04,
+                envMap: bladeEnvironment,
+                envMapIntensity: 1.8,
                 side: THREE.DoubleSide
             });
             sharedMaterials.bayonetEdge = new THREE.MeshStandardMaterial({
                 color: 0xf8fafc,
-                roughness: 0.10,
-                metalness: 0.98
+                roughness: 0.08,
+                metalness: 0.99
             });
-            sharedMaterials.damascusBlade = new THREE.MeshStandardMaterial({
-                map: damascusTex,
-                color: 0xffffff,
-                roughness: 0.30,
-                metalness: 0.28,
-                bumpMap: damascusTex,
-                bumpScale: 0.0007,
+            sharedMaterials.karambitBlade = new THREE.MeshPhysicalMaterial({
+                color: 0xf5f9ff,
+                roughness: 0.06,
+                metalness: 0.9,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.04,
+                envMap: bladeEnvironment,
+                envMapIntensity: 1.9,
                 side: THREE.DoubleSide
             });
             sharedMaterials.knifeGrip = new THREE.MeshStandardMaterial({
@@ -3273,7 +3317,7 @@
             pommelMain.position.set(0, -0.058, 0);
             bladeRig.add(pommelMain);
 
-            const pommelRing = new THREE.Mesh(new THREE.TorusGeometry(0.010, 0.003, 10, 18), sharedMaterials.gunAccentNeon);
+            const pommelRing = new THREE.Mesh(new THREE.TorusGeometry(0.009, 0.0018, 10, 18), sharedMaterials.bayonetBlade);
             pommelRing.rotation.y = Math.PI / 2;
             pommelRing.position.set(0, -0.068, 0);
             bladeRig.add(pommelRing);
@@ -3290,81 +3334,72 @@
             // Grip texture lines
             for (let i = 0; i < 8; i++) {
                 const gripLine = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.012, 0.095, 0.002),
-                    sharedMaterials.gunMetal
+                    new THREE.BoxGeometry(0.006, 0.088, 0.0012),
+                    sharedMaterials.gunPolymer
                 );
                 gripLine.position.set(0, -0.01 + i * 0.014, 0.014);
                 bladeRig.add(gripLine);
             }
 
             // Collar ring at handle top
-            const collarRing = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.010, 14), sharedMaterials.gunAccentNeon);
+            const collarRing = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.007, 14), sharedMaterials.bayonetBlade);
             collarRing.position.set(0, 0.045, 0);
             bladeRig.add(collarRing);
 
             // Crossguard - robust design
-            const crossguardMain = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.010, 0.062), sharedMaterials.gunMetal);
+            const crossguardMain = new THREE.Mesh(new THREE.BoxGeometry(0.010, 0.007, 0.042), sharedMaterials.bayonetBlade);
             crossguardMain.position.set(0, 0.050, 0.002);
             bladeRig.add(crossguardMain);
 
-            const bladeLen = 0.24;
+            const bladeLen = 0.255;
             const bladeGroup = new THREE.Group();
             bladeGroup.position.set(0, 0.055, 0);
-
             const bladeOutline = new THREE.Shape();
-            bladeOutline.moveTo(-0.014, 0);
-            bladeOutline.lineTo(0.014, 0);
-            bladeOutline.lineTo(0.012, bladeLen * 0.72);
-            bladeOutline.lineTo(0.003, bladeLen * 0.90);
-            bladeOutline.lineTo(-0.008, bladeLen);
-            bladeOutline.lineTo(-0.012, bladeLen * 0.94);
-            bladeOutline.lineTo(-0.015, bladeLen * 0.20);
+            bladeOutline.moveTo(-0.006, 0);
+            bladeOutline.lineTo(0.006, 0);
+            bladeOutline.lineTo(0.0105, bladeLen * 0.18);
+            bladeOutline.lineTo(0.0095, bladeLen * 0.56);
+            bladeOutline.lineTo(0.0055, bladeLen * 0.82);
+            bladeOutline.lineTo(0.0005, bladeLen);
+            bladeOutline.lineTo(-0.0065, bladeLen * 0.7);
             bladeOutline.closePath();
             const bladeGeometry = new THREE.ExtrudeGeometry(bladeOutline, {
-                depth: 0.009,
+                depth: 0.0018,
                 bevelEnabled: true,
                 bevelSegments: 3,
                 steps: 1,
-                bevelSize: 0.0012,
-                bevelThickness: 0.0012
+                bevelSize: 0.0002,
+                bevelThickness: 0.0002
             });
-            bladeGeometry.translate(0, 0, -0.0045);
-            const bladePositions = bladeGeometry.attributes.position;
-            const bladeUvs = bladeGeometry.attributes.uv;
-            for (let i = 0; i < bladePositions.count; i++) {
-                bladeUvs.setXY(
-                    i,
-                    THREE.MathUtils.clamp((bladePositions.getX(i) + 0.016) / 0.034, 0, 1),
-                    THREE.MathUtils.clamp(bladePositions.getY(i) / bladeLen, 0, 1)
-                );
-            }
-            bladeUvs.needsUpdate = true;
+            bladeGeometry.translate(0, 0, -0.0009);
             const bladeBody = new THREE.Mesh(bladeGeometry, sharedMaterials.bayonetBlade);
             bladeBody.castShadow = true;
             bladeBody.receiveShadow = true;
             bladeGroup.add(bladeBody);
 
             const fullerMaterial = new THREE.MeshStandardMaterial({
-                color: 0x303638,
-                roughness: 0.38,
-                metalness: 0.88
+                color: 0x1b2124,
+                roughness: 0.42,
+                metalness: 0.9
             });
             const fuller = new THREE.Mesh(
-                new THREE.BoxGeometry(0.004, bladeLen * 0.64, 0.0008),
+                new THREE.BoxGeometry(0.0010, bladeLen * 0.52, 0.00025),
                 fullerMaterial
             );
-            fuller.position.set(0, bladeLen * 0.48, 0.0044);
+            fuller.position.set(0, bladeLen * 0.46, 0.0013);
             bladeGroup.add(fuller);
 
-            // Serrated section near handle
-            for (let i = 0; i < 12; i++) {
-                const serration = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.004, 0.0022, 0.0012),
-                    sharedMaterials.bayonetEdge
-                );
-                serration.position.set(0.008, 0.035 + i * 0.0045, 0.0048);
-                bladeGroup.add(serration);
-            }
+            const bayonetEdgePath = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(0.010, 0.0025, 0.0025),
+                new THREE.Vector3(0.009, bladeLen * 0.22, 0.0025),
+                new THREE.Vector3(0.006, bladeLen * 0.68, 0.0025),
+                new THREE.Vector3(0.0005, bladeLen, 0.0025)
+            ]);
+            const bayonetCuttingEdge = new THREE.Mesh(
+                new THREE.TubeGeometry(bayonetEdgePath, 42, 0.0005, 5, false),
+                new THREE.MeshBasicMaterial({ color: 0xf5fbff, toneMapped: false })
+            );
+            bladeGroup.add(bayonetCuttingEdge);
 
             bladeRig.add(bladeGroup);
 
@@ -3445,14 +3480,14 @@
             const bladeRig = new THREE.Group();
 
             const ringOuter = new THREE.Mesh(
-                new THREE.TorusGeometry(0.016, 0.0022, 16, 40),
-                sharedMaterials.gunAccentNeon
+                new THREE.TorusGeometry(0.016, 0.0015, 16, 40),
+                sharedMaterials.karambitBlade
             );
             bladeRig.add(ringOuter);
 
             const ringInner = new THREE.Mesh(
-                new THREE.TorusGeometry(0.0122, 0.0012, 12, 36),
-                sharedMaterials.gunCyberCyan
+                new THREE.TorusGeometry(0.0122, 0.0008, 12, 36),
+                sharedMaterials.karambitBlade
             );
             bladeRig.add(ringInner);
 
@@ -3483,21 +3518,16 @@
                 handleGroup.add(band);
             }
 
-            const handleScrew = new THREE.MeshStandardMaterial({
-                color: 0x8b7656,
-                roughness: 0.3,
-                metalness: 0.85
-            });
             const bolster = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.014, 0.012, 0.018, 20),
-                sharedMaterials.gunMetal
+                new THREE.CylinderGeometry(0.011, 0.010, 0.012, 20),
+                sharedMaterials.karambitBlade
             );
             bolster.position.set(0, 0.074, 0);
             handleGroup.add(bolster);
             for (const y of [-0.016, 0.031]) {
                 const screw = new THREE.Mesh(
                     new THREE.CylinderGeometry(0.0024, 0.0024, 0.0014, 12),
-                    handleScrew
+                    sharedMaterials.karambitBlade
                 );
                 screw.rotation.z = Math.PI / 2;
                 screw.position.set(0.014, y, 0.002);
@@ -3510,59 +3540,53 @@
             bladeGroup.position.set(0, 0.083, 0);
             const bladeLength = 0.092;
             const bladeOutline = new THREE.Shape();
-            bladeOutline.moveTo(-0.014, 0);
-            bladeOutline.lineTo(0.010, 0);
-            bladeOutline.quadraticCurveTo(0.022, 0.018, 0.029, 0.038);
-            bladeOutline.quadraticCurveTo(0.038, 0.062, 0.019, 0.084);
-            bladeOutline.lineTo(0.008, bladeLength);
-            bladeOutline.quadraticCurveTo(0.004, 0.078, 0.016, 0.061);
-            bladeOutline.quadraticCurveTo(0.023, 0.049, 0.010, 0.036);
-            bladeOutline.quadraticCurveTo(0.004, 0.018, -0.014, 0);
+            bladeOutline.moveTo(-0.005, 0);
+            bladeOutline.lineTo(0.004, 0);
+            bladeOutline.quadraticCurveTo(0.011, 0.014, 0.014, 0.032);
+            bladeOutline.quadraticCurveTo(0.018, 0.046, 0.017, 0.065);
+            bladeOutline.lineTo(0.011, bladeLength);
+            bladeOutline.lineTo(0.005, 0.078);
+            bladeOutline.quadraticCurveTo(0.012, 0.053, 0.006, 0.034);
+            bladeOutline.quadraticCurveTo(0.003, 0.018, -0.005, 0);
             bladeOutline.closePath();
 
             const bladeGeo = new THREE.ExtrudeGeometry(bladeOutline, {
-                depth: 0.006,
+                depth: 0.0018,
                 bevelEnabled: true,
-                bevelSegments: 2,
+                bevelSegments: 3,
                 steps: 1,
-                bevelSize: 0.0007,
-                bevelThickness: 0.0007
+                bevelSize: 0.00018,
+                bevelThickness: 0.00018
             });
-            bladeGeo.translate(0, 0, -0.003);
-            const karambitSteel = new THREE.MeshStandardMaterial({
-                color: 0xd2dde2,
-                roughness: 0.30,
-                metalness: 0.34,
-                side: THREE.DoubleSide
-            });
-            const bladeMesh = new THREE.Mesh(bladeGeo, karambitSteel);
+            bladeGeo.translate(0, 0, -0.0009);
+            const bladeMesh = new THREE.Mesh(bladeGeo, sharedMaterials.karambitBlade);
             bladeMesh.castShadow = true;
             bladeMesh.receiveShadow = true;
             bladeGroup.add(bladeMesh);
 
             const fullerGeo = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(0, 0.008, 0.0038),
-                new THREE.Vector3(0.011, 0.032, 0.0038),
-                new THREE.Vector3(0.024, 0.054, 0.0038),
-                new THREE.Vector3(0.028, 0.070, 0.0038),
-                new THREE.Vector3(0.018, 0.088, 0.0038)
+                new THREE.Vector3(0.0, 0.012, 0.0012),
+                new THREE.Vector3(0.008, 0.028, 0.0012),
+                new THREE.Vector3(0.013, 0.048, 0.0012),
+                new THREE.Vector3(0.014, 0.062, 0.0012),
+                new THREE.Vector3(0.010, 0.08, 0.0012)
             ]);
             const fullerLine = new THREE.Line(
                 fullerGeo,
-                new THREE.LineBasicMaterial({ color: 0x454c4e, transparent: true, opacity: 0.78 })
+                new THREE.LineBasicMaterial({ color: 0x4e5658, transparent: true, opacity: 0.72 })
             );
             bladeGroup.add(fullerLine);
             const cuttingEdgePath = new THREE.CatmullRomCurve3([
-                    new THREE.Vector3(-0.014, 0.001, 0.004),
-                    new THREE.Vector3(0.004, 0.018, 0.004),
-                    new THREE.Vector3(0.010, 0.036, 0.004),
-                    new THREE.Vector3(0.016, 0.061, 0.004),
-                    new THREE.Vector3(0.008, 0.078, 0.004),
-                    new THREE.Vector3(0.008, bladeLength, 0.004)
+                    new THREE.Vector3(-0.005, 0.0008, 0.0025),
+                    new THREE.Vector3(0.003, 0.010, 0.0025),
+                    new THREE.Vector3(0.006, 0.032, 0.0025),
+                    new THREE.Vector3(0.014, 0.046, 0.0025),
+                    new THREE.Vector3(0.008, 0.068, 0.0025),
+                    new THREE.Vector3(0.011, bladeLength, 0.0025)
             ]);
             const cuttingEdge = new THREE.Mesh(
-                new THREE.TubeGeometry(cuttingEdgePath, 32, 0.0011, 6, false),
-                new THREE.MeshBasicMaterial({ color: 0xf4f7f8, toneMapped: false })
+                    new THREE.TubeGeometry(cuttingEdgePath, 42, 0.00048, 5, false),
+                    new THREE.MeshBasicMaterial({ color: 0xf5fbff, toneMapped: false })
             );
             bladeGroup.add(cuttingEdge);
 
@@ -4930,13 +4954,6 @@
 
             sharedMaterials.gunFDE.map = texSet.gun;
             sharedMaterials.gunFDE.needsUpdate = true;
-            sharedMaterials.bayonetBlade.map = texSet.blade;
-            sharedMaterials.bayonetBlade.bumpMap = texSet.blade;
-            sharedMaterials.bayonetBlade.needsUpdate = true;
-            sharedMaterials.damascusBlade.map = texSet.blade;
-            sharedMaterials.damascusBlade.bumpMap = texSet.blade;
-            sharedMaterials.damascusBlade.needsUpdate = true;
-
             if (theme === 'KITSUNE') {
                 sharedMaterials.gunAccentNeon.color.setHex(0xff2a85);
                 sharedMaterials.gunAccentNeon.emissive.setHex(0xff2a85);
